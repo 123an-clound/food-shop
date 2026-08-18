@@ -9,19 +9,25 @@ import { deleteCategory, reorderCategories } from '@/app/actions/categories';
 import { SortableList } from '@/components/admin/SortableList';
 import { ConfirmDeleteDialog } from '@/components/admin/ConfirmDeleteDialog';
 import { Button } from '@/components/ui/button';
-import type { Category } from '@/lib/types';
+import type { Category, MenuItem } from '@/lib/types';
 
-export function CategoriesTable({ categories }: { categories: Category[] }) {
+export function CategoriesTable({ categories, items }: { categories: Category[]; items: MenuItem[] }) {
   const router = useRouter();
   const [pendingDelete, setPendingDelete] = useState<Category | null>(null);
   const [, startTransition] = useTransition();
+
+  const pendingDeleteItemCount = pendingDelete
+    ? items.filter((item) => item.category_id === pendingDelete.id).length
+    : 0;
 
   function handleReorder(orderedIds: string[]) {
     startTransition(async () => {
       const result = await reorderCategories(orderedIds);
       if (!result.success) {
         toast.error(result.error);
+        return;
       }
+      router.refresh();
     });
   }
 
@@ -64,6 +70,11 @@ export function CategoriesTable({ categories }: { categories: Category[] }) {
         onOpenChange={(open) => !open && setPendingDelete(null)}
         onConfirm={handleConfirmDelete}
         itemName={pendingDelete?.name_vi ?? ''}
+        extraWarning={
+          pendingDeleteItemCount > 0
+            ? `Danh mục này đang có ${pendingDeleteItemCount} món ăn — các món này sẽ không còn hiển thị trên trang thực đơn.`
+            : undefined
+        }
       />
     </>
   );

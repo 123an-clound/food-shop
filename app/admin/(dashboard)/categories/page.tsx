@@ -1,13 +1,13 @@
 import Link from 'next/link';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { getCategories } from '@/lib/supabase/queries';
+import { getCategories, getMenuItems } from '@/lib/supabase/queries';
 import { Button } from '@/components/ui/button';
 import { CategoriesTable } from '@/components/admin/CategoriesTable';
 
 export default async function CategoriesPage() {
   const supabase = await createServerSupabaseClient();
-  const categories = await getCategories(supabase);
+  const [categories, items] = await Promise.all([getCategories(supabase), getMenuItems(supabase)]);
 
   return (
     <div className="space-y-6">
@@ -17,7 +17,7 @@ export default async function CategoriesPage() {
           <Link href="/admin/categories/new">Thêm danh mục</Link>
         </Button>
       </div>
-      <CategoriesTable categories={categories} />
+      <CategoriesTable categories={categories} items={items} />
     </div>
   );
 }

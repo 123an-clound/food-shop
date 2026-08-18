@@ -3,10 +3,15 @@
 import { revalidatePath } from 'next/cache';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/actions/require-admin';
 import { restaurantInfoSchema } from '@/lib/validation/restaurant-info';
 import type { ActionResult } from '@/lib/actions/types';
 
 export async function updateRestaurantInfo(formData: FormData): Promise<ActionResult> {
+  const supabase = await createServerSupabaseClient();
+  const admin = await requireAdmin(supabase);
+  if (!admin.ok) return admin.result;
+
   const parsed = restaurantInfoSchema.safeParse({
     name_vi: formData.get('name_vi'),
     name_en: formData.get('name_en'),
@@ -29,7 +34,6 @@ export async function updateRestaurantInfo(formData: FormData): Promise<ActionRe
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const supabase = await createServerSupabaseClient();
   const { error } = await supabase.from('restaurant_info').update(parsed.data).eq('id', 1);
 
   if (error) {

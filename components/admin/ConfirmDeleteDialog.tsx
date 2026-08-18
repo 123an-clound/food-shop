@@ -15,18 +15,23 @@ export function ConfirmDeleteDialog({
   onOpenChange,
   onConfirm,
   itemName,
+  extraWarning,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
   itemName: string;
+  extraWarning?: string;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Xoá &quot;{itemName}&quot;?</DialogTitle>
-          <DialogDescription>Hành động này không thể hoàn tác.</DialogDescription>
+          <DialogDescription>
+            Hành động này không thể hoàn tác.
+            {extraWarning && <span className="mt-1 block">{extraWarning}</span>}
+          </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

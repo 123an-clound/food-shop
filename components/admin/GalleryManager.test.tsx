@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { GalleryManager } from './GalleryManager';
@@ -36,6 +37,36 @@ vi.mock('sonner', () => ({
     success: (...args: unknown[]) => toastSuccessMock(...args),
     error: (...args: unknown[]) => toastErrorMock(...args),
   },
+}));
+
+// SortableList uses real dnd-kit internals that are impractical to drive via
+// synthetic pointer events in jsdom. Stub it with a simplified version that
+// still renders every item and exposes a button to trigger `onReorder`
+// directly with a fixed reordered id array, so we can test the *wiring*
+// between this table and the reorder Server Action without simulating real
+// drag physics.
+vi.mock('@/components/admin/SortableList', () => ({
+  SortableList: ({
+    items,
+    onReorder,
+    renderItem,
+  }: {
+    items: { id: string }[];
+    onReorder: (orderedIds: string[]) => void;
+    renderItem: (item: { id: string }) => ReactNode;
+  }) => (
+    <div>
+      {items.map((item) => (
+        <div key={item.id}>{renderItem(item)}</div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onReorder([...items].reverse().map((item) => item.id))}
+      >
+        Simulate reorder
+      </button>
+    </div>
+  ),
 }));
 
 const images = [
@@ -160,5 +191,21 @@ describe('GalleryManager', () => {
       expect(deleteGalleryImageMock).toHaveBeenCalledWith('img-1');
     });
     expect(toastSuccessMock).toHaveBeenCalled();
+  });
+
+  it('calls reorderGalleryImages with the full reordered id array and refreshes on success', async () => {
+    reorderGalleryImagesMock.mockResolvedValue({ success: true });
+    const twoImages = [
+      ...images,
+      { id: 'img-2', image_url: 'https://x.supabase.co/b.jpg', caption_vi: 'Sảnh', caption_en: 'Hall', display_order: 2 },
+    ];
+    render(<GalleryManager images={twoImages} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Simulate reorder' }));
+    await waitFor(() => {
+      expect(reorderGalleryImagesMock).toHaveBeenCalledWith(['img-2', 'img-1']);
+    });
+    await waitFor(() => {
+      expect(refreshMock).toHaveBeenCalled();
+    });
   });
 });

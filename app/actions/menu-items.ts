@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/actions/require-admin';
 import { menuItemSchema } from '@/lib/validation/menu-item';
 import type { ActionResult } from '@/lib/actions/types';
 
@@ -21,12 +22,15 @@ function parseFormData(formData: FormData) {
 }
 
 export async function createMenuItem(formData: FormData): Promise<ActionResult> {
+  const supabase = await createServerSupabaseClient();
+  const admin = await requireAdmin(supabase);
+  if (!admin.ok) return admin.result;
+
   const parsed = parseFormData(formData);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const supabase = await createServerSupabaseClient();
   const { count } = await supabase
     .from('menu_items')
     .select('*', { count: 'exact', head: true })
@@ -47,12 +51,15 @@ export async function createMenuItem(formData: FormData): Promise<ActionResult> 
 }
 
 export async function updateMenuItem(id: string, formData: FormData): Promise<ActionResult> {
+  const supabase = await createServerSupabaseClient();
+  const admin = await requireAdmin(supabase);
+  if (!admin.ok) return admin.result;
+
   const parsed = parseFormData(formData);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const supabase = await createServerSupabaseClient();
   const { error } = await supabase.from('menu_items').update(parsed.data).eq('id', id);
 
   if (error) {
@@ -66,6 +73,9 @@ export async function updateMenuItem(id: string, formData: FormData): Promise<Ac
 
 export async function deleteMenuItem(id: string): Promise<ActionResult> {
   const supabase = await createServerSupabaseClient();
+  const admin = await requireAdmin(supabase);
+  if (!admin.ok) return admin.result;
+
   const { error } = await supabase.from('menu_items').delete().eq('id', id);
 
   if (error) {
@@ -79,6 +89,8 @@ export async function deleteMenuItem(id: string): Promise<ActionResult> {
 
 export async function reorderMenuItems(orderedIds: string[]): Promise<ActionResult> {
   const supabase = await createServerSupabaseClient();
+  const admin = await requireAdmin(supabase);
+  if (!admin.ok) return admin.result;
 
   const results = await Promise.all(
     orderedIds.map((id, index) =>

@@ -3,10 +3,15 @@
 import { revalidatePath } from 'next/cache';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/actions/require-admin';
 import { galleryImageSchema } from '@/lib/validation/gallery-image';
 import type { ActionResult } from '@/lib/actions/types';
 
 export async function createGalleryImage(formData: FormData): Promise<ActionResult> {
+  const supabase = await createServerSupabaseClient();
+  const admin = await requireAdmin(supabase);
+  if (!admin.ok) return admin.result;
+
   const parsed = galleryImageSchema.safeParse({
     image_url: formData.get('image_url'),
     caption_vi: formData.get('caption_vi') ?? '',
@@ -17,7 +22,6 @@ export async function createGalleryImage(formData: FormData): Promise<ActionResu
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const supabase = await createServerSupabaseClient();
   const { count } = await supabase.from('gallery_images').select('*', { count: 'exact', head: true });
 
   const { error } = await supabase.from('gallery_images').insert({
@@ -40,9 +44,21 @@ export async function updateGalleryImageCaption(
   captionEn: string
 ): Promise<ActionResult> {
   const supabase = await createServerSupabaseClient();
+  const admin = await requireAdmin(supabase);
+  if (!admin.ok) return admin.result;
+
+  const parsed = galleryImageSchema.pick({ caption_vi: true, caption_en: true }).safeParse({
+    caption_vi: captionVi,
+    caption_en: captionEn,
+  });
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+
   const { error } = await supabase
     .from('gallery_images')
-    .update({ caption_vi: captionVi, caption_en: captionEn })
+    .update(parsed.data)
     .eq('id', id);
 
   if (error) {
@@ -55,6 +71,9 @@ export async function updateGalleryImageCaption(
 
 export async function deleteGalleryImage(id: string): Promise<ActionResult> {
   const supabase = await createServerSupabaseClient();
+  const admin = await requireAdmin(supabase);
+  if (!admin.ok) return admin.result;
+
   const { error } = await supabase.from('gallery_images').delete().eq('id', id);
 
   if (error) {
@@ -68,6 +87,8 @@ export async function deleteGalleryImage(id: string): Promise<ActionResult> {
 
 export async function reorderGalleryImages(orderedIds: string[]): Promise<ActionResult> {
   const supabase = await createServerSupabaseClient();
+  const admin = await requireAdmin(supabase);
+  if (!admin.ok) return admin.result;
 
   const results = await Promise.all(
     orderedIds.map((id, index) =>

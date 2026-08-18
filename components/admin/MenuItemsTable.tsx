@@ -31,12 +31,17 @@ export function MenuItemsTable({ items, categories }: { items: MenuItem[]; categ
     });
   }, [items, search, categoryFilter]);
 
+  const isSearchActive = search.trim() !== '';
+  const canDragReorder = categoryFilter !== 'all' && !isSearchActive;
+
   function handleReorder(orderedIds: string[]) {
     startTransition(async () => {
       const result = await reorderMenuItems(orderedIds);
       if (!result.success) {
         toast.error(result.error);
+        return;
       }
+      router.refresh();
     });
   }
 
@@ -110,15 +115,20 @@ export function MenuItemsTable({ items, categories }: { items: MenuItem[]; categ
           Chọn một danh mục cụ thể để sắp xếp thứ tự bằng kéo-thả.
         </p>
       )}
+      {categoryFilter !== 'all' && isSearchActive && (
+        <p className="text-sm text-muted-foreground">
+          Xoá nội dung tìm kiếm để sắp xếp thứ tự bằng kéo-thả.
+        </p>
+      )}
 
-      {categoryFilter === 'all' ? (
+      {canDragReorder ? (
+        <SortableList items={filteredItems} onReorder={handleReorder} renderItem={renderRow} />
+      ) : (
         <div className="space-y-2">
           {filteredItems.map((item) => (
             <div key={item.id}>{renderRow(item)}</div>
           ))}
         </div>
-      ) : (
-        <SortableList items={filteredItems} onReorder={handleReorder} renderItem={renderRow} />
       )}
 
       <ConfirmDeleteDialog

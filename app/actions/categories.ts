@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/actions/require-admin';
 import { categorySchema } from '@/lib/validation/category';
 import { slugify } from '@/lib/slug';
 import type { ActionResult } from '@/lib/actions/types';
@@ -17,12 +18,15 @@ function parseFormData(formData: FormData) {
 }
 
 export async function createCategory(formData: FormData): Promise<ActionResult> {
+  const supabase = await createServerSupabaseClient();
+  const admin = await requireAdmin(supabase);
+  if (!admin.ok) return admin.result;
+
   const parsed = parseFormData(formData);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const supabase = await createServerSupabaseClient();
   const { count } = await supabase.from('categories').select('*', { count: 'exact', head: true });
 
   const { error } = await supabase.from('categories').insert({
@@ -41,12 +45,15 @@ export async function createCategory(formData: FormData): Promise<ActionResult> 
 }
 
 export async function updateCategory(id: string, formData: FormData): Promise<ActionResult> {
+  const supabase = await createServerSupabaseClient();
+  const admin = await requireAdmin(supabase);
+  if (!admin.ok) return admin.result;
+
   const parsed = parseFormData(formData);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const supabase = await createServerSupabaseClient();
   const { error } = await supabase
     .from('categories')
     .update({ ...parsed.data, slug: slugify(parsed.data.name_vi) })
@@ -63,6 +70,9 @@ export async function updateCategory(id: string, formData: FormData): Promise<Ac
 
 export async function deleteCategory(id: string): Promise<ActionResult> {
   const supabase = await createServerSupabaseClient();
+  const admin = await requireAdmin(supabase);
+  if (!admin.ok) return admin.result;
+
   const { error } = await supabase.from('categories').delete().eq('id', id);
 
   if (error) {
@@ -76,6 +86,8 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
 
 export async function reorderCategories(orderedIds: string[]): Promise<ActionResult> {
   const supabase = await createServerSupabaseClient();
+  const admin = await requireAdmin(supabase);
+  if (!admin.ok) return admin.result;
 
   const results = await Promise.all(
     orderedIds.map((id, index) =>
