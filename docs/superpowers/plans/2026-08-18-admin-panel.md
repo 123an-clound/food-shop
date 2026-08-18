@@ -4,7 +4,7 @@
 
 **Goal:** Build `/admin/**` — an auth-gated dashboard where the restaurant owner manages menu items, categories, restaurant info, and gallery images without touching code or the Supabase Dashboard.
 
-**Architecture:** A separate `(admin)` route group with its own light-theme layout (sidebar, no shared Navbar/Footer/LanguageProvider from the public site). `middleware.ts` gates every `/admin/**` route except `/admin/login` using `@supabase/ssr`'s `getUser()` (never `getSession()` — it doesn't revalidate against the auth server) plus the existing `is_admin()` RPC. All row mutations go through Next.js Server Actions using the existing session-bound `createServerSupabaseClient()`, so Postgres RLS enforces authorization on every write independently of the app-level checks. Images upload directly from the browser to Supabase Storage via `createBrowserSupabaseClient()`, then the resulting public URL is handed to a Server Action to persist.
+**Architecture:** A separate `app/admin/(dashboard)/` route group (nested under the literal `app/admin/` folder, so it actually contributes the `/admin` URL segment — see Task 8's routing note) with its own light-theme layout (sidebar, no shared Navbar/Footer/LanguageProvider from the public site). `middleware.ts` gates every `/admin/**` route except `/admin/login` using `@supabase/ssr`'s `getUser()` (never `getSession()` — it doesn't revalidate against the auth server) plus the existing `is_admin()` RPC. All row mutations go through Next.js Server Actions using the existing session-bound `createServerSupabaseClient()`, so Postgres RLS enforces authorization on every write independently of the app-level checks. Images upload directly from the browser to Supabase Storage via `createBrowserSupabaseClient()`, then the resulting public URL is handed to a Server Action to persist.
 
 **Tech Stack:** Next.js 14.2.35 (App Router, Server Actions), TypeScript, Tailwind CSS 3.4.4, shadcn/ui (hand-copied source, not CLI-installed), react-hook-form + zod, `@dnd-kit/react` + `@dnd-kit/helpers` for drag-and-drop reordering, Supabase (Postgres + Auth + Storage), Vitest + React Testing Library.
 
@@ -20,7 +20,7 @@
 - Server Actions never `throw` for business/validation/Supabase errors — they return `ActionResult` (defined in Task 11) so forms can display the error. Only genuinely unexpected infrastructure failures should propagate to an error boundary.
 - Image upload is client-side only (browser → Supabase Storage directly), never routed through a Server Action — this avoids raising Server Actions' default 1MB body limit and keeps large file bytes off the Next.js server entirely. Max 5MB per file, accepted types `image/jpeg`, `image/png`, `image/webp`.
 - Admin UI is light-theme only, no dark mode — the Sonner `Toaster` is configured with a hardcoded `theme="light"` prop and this project does **not** add the `next-themes` dependency (unlike shadcn's default Sonner setup, which assumes a dark-mode toggle exists).
-- `(admin)` route group does not import anything from `(site)` (`Navbar`, `Footer`, `LanguageProvider`, `lib/i18n/*`) — admin UI is not bilingual, only the VI/EN data fields it edits are.
+- `app/admin/(dashboard)/` route group does not import anything from `(site)` (`Navbar`, `Footer`, `LanguageProvider`, `lib/i18n/*`) — admin UI is not bilingual, only the VI/EN data fields it edits are.
 - All new `.tsx`/`.ts` files use the existing `@/*` path alias (`tsconfig.json` `paths`) exactly like the current codebase.
 
 ---
@@ -1477,7 +1477,7 @@ git commit -m "feat: add admin route protection middleware"
 - Consumes: `createBrowserSupabaseClient` from `lib/supabase/client.ts` (already fixed in the previous review round to read `NEXT_PUBLIC_*` vars via literal `process.env` access — this is the first real production call site that exercises that fix), `Form`/`FormField`/`FormItem`/`FormLabel`/`FormControl`/`FormMessage` (Task 5), `Button`/`Input` (Task 2).
 - Produces: `LoginForm` — a standalone component, no other task consumes it directly.
 
-**A routing note before this task:** `app/admin/login/page.tsx` deliberately lives in a **literal** `app/admin/` folder, not inside the `app/(admin)/` route group used from Task 9 onward. Route-group parentheses are invisible to the URL but very much *not* invisible to layout nesting — anything placed inside `app/(admin)/` inherits `app/(admin)/layout.tsx` (the sidebar shell built in Task 9). The login page must not show a sidebar (nothing is authenticated yet), so it has to live outside that group entirely. `app/admin/login/page.tsx` (→ `/admin/login`) and `app/(admin)/page.tsx` (→ `/admin`, built in Task 10) coexist as sibling trees under `app/` without conflict — this is the standard, Next.js-documented way to exclude one route from an otherwise-shared layout.
+**A routing note before this task — corrected after Task 14 caught a real build failure (see the ledger's Task 14 entry):** `app/admin/login/page.tsx` deliberately lives directly under the **literal** `app/admin/` folder, sibling to a **nested route group** `app/admin/(dashboard)/` used from Task 9 onward for every other admin route. Route-group parentheses are invisible to the URL — that cuts both ways. A single top-level group folder named e.g. `(admin)` containing a `page.tsx` would NOT put `/admin` in the URL at all; it would resolve to plain `/`, colliding with the public site's own `/` (this is exactly the bug Task 14 hit and this plan originally specified by mistake) — a route group never contributes a URL segment by itself, it only groups files for a shared layout. `admin` has to be a real, literal folder to put `/admin` in the URL at all; `(dashboard)` nested inside that literal folder then scopes the sidebar layout + auth check (Task 9) to everything under it without applying it to the sibling `app/admin/login/` — since `(dashboard)` is invisible to the URL, `app/admin/(dashboard)/page.tsx` resolves to `/admin`, `app/admin/(dashboard)/categories/page.tsx` resolves to `/admin/categories`, and so on. `app/admin/login/page.tsx` (→ `/admin/login`) and `app/admin/(dashboard)/page.tsx` (→ `/admin`, built in Task 10) coexist as sibling trees under `app/admin/` without conflict — this is the standard, Next.js-documented way to exclude one route from an otherwise-shared layout.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1695,12 +1695,12 @@ git commit -m "feat: add admin login page"
 **Files:**
 - Create: `components/admin/Sidebar.tsx`
 - Create: `components/admin/Sidebar.test.tsx`
-- Create: `app/(admin)/layout.tsx`
-- Create: `app/(admin)/error.tsx`
+- Create: `app/admin/(dashboard)/layout.tsx`
+- Create: `app/admin/(dashboard)/error.tsx`
 
 **Interfaces:**
 - Consumes: `createBrowserSupabaseClient` (Sidebar's logout), `createServerSupabaseClient` (layout's server-side double-check), `Toaster` (Task 4), `cn` (Task 1), `Button` (Task 2).
-- Produces: `Sidebar` — mounted only by `app/(admin)/layout.tsx`.
+- Produces: `Sidebar` — mounted only by `app/admin/(dashboard)/layout.tsx`.
 
 - [ ] **Step 1: Write the failing test for `Sidebar`**
 
@@ -1833,7 +1833,7 @@ export function Sidebar() {
 Run: `npx vitest run components/admin/Sidebar.test.tsx`
 Expected: PASS (3 tests)
 
-- [ ] **Step 5: Create `app/(admin)/layout.tsx`**
+- [ ] **Step 5: Create `app/admin/(dashboard)/layout.tsx`**
 
 ```tsx
 import { redirect } from 'next/navigation';
@@ -1889,7 +1889,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
 This double-checks `getUser()` + `is_admin()` even though `middleware.ts` (Task 7) already ran first — deliberate defense-in-depth per the spec, not redundant dead code: middleware and layout are two independently-deployable checks, and this project's global constraints call for not trusting any single layer absolutely.
 
-- [ ] **Step 6: Create `app/(admin)/error.tsx`**
+- [ ] **Step 6: Create `app/admin/(dashboard)/error.tsx`**
 
 ```tsx
 'use client';
@@ -1913,7 +1913,7 @@ export default function AdminError({ reset }: { error: Error & { digest?: string
 }
 ```
 
-**Placement note (same rule the public-site branch's final review caught):** `app/(admin)/error.tsx` only catches errors thrown by *pages inside* the `(admin)` group — not errors thrown by `(admin)/layout.tsx` itself. A `getUser()`/`rpc('is_admin')` network failure inside the layout above falls through to the already-existing `app/error.tsx` (built in the public-site plan), which sits one level higher and does catch it. `redirect()` calls are not caught by either boundary — Next.js gives `redirect()` special handling specifically so it escapes error boundaries rather than being treated as a thrown error.
+**Placement note (same rule the public-site branch's final review caught):** `app/admin/(dashboard)/error.tsx` only catches errors thrown by *pages inside* the `(dashboard)` group — not errors thrown by `(dashboard)/layout.tsx` itself. A `getUser()`/`rpc('is_admin')` network failure inside the layout above falls through to the already-existing `app/error.tsx` (built in the public-site plan), which sits one level higher and does catch it — `app/admin/` itself has no `layout.tsx` of its own (nothing to fail there), so the chain is simply root → `app/admin/(dashboard)/layout.tsx` → `app/error.tsx` on failure. `redirect()` calls are not caught by either boundary — Next.js gives `redirect()` special handling specifically so it escapes error boundaries rather than being treated as a thrown error.
 
 - [ ] **Step 7: Verify the full site builds**
 
@@ -1928,7 +1928,7 @@ Expected: all pass.
 - [ ] **Step 9: Commit**
 
 ```bash
-git add components/admin/Sidebar.tsx components/admin/Sidebar.test.tsx "app/(admin)/layout.tsx" "app/(admin)/error.tsx"
+git add components/admin/Sidebar.tsx components/admin/Sidebar.test.tsx "app/admin/(dashboard)/layout.tsx" "app/admin/(dashboard)/error.tsx"
 git commit -m "feat: add admin sidebar, layout auth double-check, and error boundary"
 ```
 
@@ -1940,7 +1940,7 @@ git commit -m "feat: add admin sidebar, layout auth double-check, and error boun
 - Modify: `lib/supabase/test-helpers.ts`
 - Create: `lib/supabase/admin-queries.ts`
 - Create: `lib/supabase/admin-queries.test.ts`
-- Create: `app/(admin)/page.tsx`
+- Create: `app/admin/(dashboard)/page.tsx`
 
 **Interfaces:**
 - Produces: `createFakeSupabaseSequence(results: FakeResult[]): SupabaseClient` — a second fake-client constructor alongside the existing `createFakeSupabase`, for tests where a function queries more than one table with different expected results per call, consumed in the order `.from()` is called. Later resource-schema tasks that test multi-query logic can reuse it.
@@ -2082,7 +2082,7 @@ export async function getDashboardCounts(supabase: SupabaseClient): Promise<Dash
 Run: `npx vitest run lib/supabase/admin-queries.test.ts`
 Expected: PASS (3 tests)
 
-- [ ] **Step 6: Create `app/(admin)/page.tsx`**
+- [ ] **Step 6: Create `app/admin/(dashboard)/page.tsx`**
 
 ```tsx
 import Link from 'next/link';
@@ -2132,7 +2132,7 @@ Expected: all pass.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add lib/supabase/test-helpers.ts lib/supabase/admin-queries.ts lib/supabase/admin-queries.test.ts "app/(admin)/page.tsx"
+git add lib/supabase/test-helpers.ts lib/supabase/admin-queries.ts lib/supabase/admin-queries.test.ts "app/admin/(dashboard)/page.tsx"
 git commit -m "feat: add admin dashboard with live counts"
 ```
 
@@ -2807,8 +2807,8 @@ git commit -m "feat: add category validation schema and Server Actions"
 **Files:**
 - Create: `components/admin/CategoryForm.tsx`
 - Create: `components/admin/CategoryForm.test.tsx`
-- Create: `app/(admin)/categories/new/page.tsx`
-- Create: `app/(admin)/categories/[id]/edit/page.tsx`
+- Create: `app/admin/(dashboard)/categories/new/page.tsx`
+- Create: `app/admin/(dashboard)/categories/[id]/edit/page.tsx`
 
 **Interfaces:**
 - Consumes: `categorySchema`/`CategoryFormValues` (Task 13), `createCategory`/`updateCategory` (Task 13), `Category` type (`lib/types.ts`, already exists), `Form`/`FormField`/etc. (Task 5), `Button`/`Input`/`Textarea` (Task 2).
@@ -3045,7 +3045,7 @@ export function CategoryForm({ category }: { category?: Category }) {
 Run: `npx vitest run components/admin/CategoryForm.test.tsx`
 Expected: PASS (4 tests)
 
-- [ ] **Step 5: Create `app/(admin)/categories/new/page.tsx`**
+- [ ] **Step 5: Create `app/admin/(dashboard)/categories/new/page.tsx`**
 
 ```tsx
 import { CategoryForm } from '@/components/admin/CategoryForm';
@@ -3060,7 +3060,7 @@ export default function NewCategoryPage() {
 }
 ```
 
-- [ ] **Step 6: Create `app/(admin)/categories/[id]/edit/page.tsx`**
+- [ ] **Step 6: Create `app/admin/(dashboard)/categories/[id]/edit/page.tsx`**
 
 ```tsx
 import { notFound } from 'next/navigation';
@@ -3098,7 +3098,7 @@ Expected: all pass.
 - [ ] **Step 9: Commit**
 
 ```bash
-git add components/admin/CategoryForm.tsx components/admin/CategoryForm.test.tsx "app/(admin)/categories/new/page.tsx" "app/(admin)/categories/[id]/edit/page.tsx"
+git add components/admin/CategoryForm.tsx components/admin/CategoryForm.test.tsx "app/admin/(dashboard)/categories/new/page.tsx" "app/admin/(dashboard)/categories/[id]/edit/page.tsx"
 git commit -m "feat: add category create/edit form and pages"
 ```
 
@@ -3109,7 +3109,7 @@ git commit -m "feat: add category create/edit form and pages"
 **Files:**
 - Create: `components/admin/CategoriesTable.tsx`
 - Create: `components/admin/CategoriesTable.test.tsx`
-- Create: `app/(admin)/categories/page.tsx`
+- Create: `app/admin/(dashboard)/categories/page.tsx`
 
 **Interfaces:**
 - Consumes: `getCategories` (already exists in `lib/supabase/queries.ts` — the same public-site query function, reused as-is since "all categories ordered by `display_order`" is exactly what the admin list needs too), `deleteCategory`/`reorderCategories` (Task 13), `SortableList` (Task 12), `ConfirmDeleteDialog` (Task 11).
@@ -3287,7 +3287,7 @@ export function CategoriesTable({ categories }: { categories: Category[] }) {
 Run: `npx vitest run components/admin/CategoriesTable.test.tsx`
 Expected: PASS (3 tests)
 
-- [ ] **Step 5: Create `app/(admin)/categories/page.tsx`**
+- [ ] **Step 5: Create `app/admin/(dashboard)/categories/page.tsx`**
 
 ```tsx
 import Link from 'next/link';
@@ -3328,7 +3328,7 @@ Expected: all pass.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add components/admin/CategoriesTable.tsx components/admin/CategoriesTable.test.tsx "app/(admin)/categories/page.tsx"
+git add components/admin/CategoriesTable.tsx components/admin/CategoriesTable.test.tsx "app/admin/(dashboard)/categories/page.tsx"
 git commit -m "feat: add categories list page with reorder and delete"
 ```
 
@@ -3564,8 +3564,8 @@ git commit -m "feat: add menu item validation schema and Server Actions"
 **Files:**
 - Create: `components/admin/MenuItemForm.tsx`
 - Create: `components/admin/MenuItemForm.test.tsx`
-- Create: `app/(admin)/menu-items/new/page.tsx`
-- Create: `app/(admin)/menu-items/[id]/edit/page.tsx`
+- Create: `app/admin/(dashboard)/menu-items/new/page.tsx`
+- Create: `app/admin/(dashboard)/menu-items/[id]/edit/page.tsx`
 
 **Interfaces:**
 - Consumes: `menuItemSchema`/`MenuItemFormValues` (Task 16), `createMenuItem`/`updateMenuItem` (Task 16), `ImageUploader` (Task 12), `Switch` (Task 3), `Select`/`SelectTrigger`/`SelectValue`/`SelectContent`/`SelectItem` (Task 3), `Category`/`MenuItem` types (`lib/types.ts`), `getCategories` (already exists).
@@ -3902,7 +3902,7 @@ export function MenuItemForm({ item, categories }: { item?: MenuItem; categories
 Run: `npx vitest run components/admin/MenuItemForm.test.tsx`
 Expected: PASS (3 tests)
 
-- [ ] **Step 5: Create `app/(admin)/menu-items/new/page.tsx`**
+- [ ] **Step 5: Create `app/admin/(dashboard)/menu-items/new/page.tsx`**
 
 ```tsx
 import { createServerSupabaseClient } from '@/lib/supabase/server';
@@ -3922,7 +3922,7 @@ export default async function NewMenuItemPage() {
 }
 ```
 
-- [ ] **Step 6: Create `app/(admin)/menu-items/[id]/edit/page.tsx`**
+- [ ] **Step 6: Create `app/admin/(dashboard)/menu-items/[id]/edit/page.tsx`**
 
 ```tsx
 import { notFound } from 'next/navigation';
@@ -3964,7 +3964,7 @@ Expected: all pass.
 - [ ] **Step 9: Commit**
 
 ```bash
-git add components/admin/MenuItemForm.tsx components/admin/MenuItemForm.test.tsx "app/(admin)/menu-items/new/page.tsx" "app/(admin)/menu-items/[id]/edit/page.tsx"
+git add components/admin/MenuItemForm.tsx components/admin/MenuItemForm.test.tsx "app/admin/(dashboard)/menu-items/new/page.tsx" "app/admin/(dashboard)/menu-items/[id]/edit/page.tsx"
 git commit -m "feat: add menu item create/edit form and pages"
 ```
 
@@ -3975,7 +3975,7 @@ git commit -m "feat: add menu item create/edit form and pages"
 **Files:**
 - Create: `components/admin/MenuItemsTable.tsx`
 - Create: `components/admin/MenuItemsTable.test.tsx`
-- Create: `app/(admin)/menu-items/page.tsx`
+- Create: `app/admin/(dashboard)/menu-items/page.tsx`
 
 **Interfaces:**
 - Consumes: `deleteMenuItem`/`reorderMenuItems` (Task 16), `SortableList` (Task 12), `ConfirmDeleteDialog` (Task 11), `formatPrice` (already exists), `getCategories`/`getMenuItems` (already exist).
@@ -4253,7 +4253,7 @@ export function MenuItemsTable({ items, categories }: { items: MenuItem[]; categ
 Run: `npx vitest run components/admin/MenuItemsTable.test.tsx`
 Expected: PASS (4 tests)
 
-- [ ] **Step 5: Create `app/(admin)/menu-items/page.tsx`**
+- [ ] **Step 5: Create `app/admin/(dashboard)/menu-items/page.tsx`**
 
 ```tsx
 import Link from 'next/link';
@@ -4296,7 +4296,7 @@ Expected: all pass.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add components/admin/MenuItemsTable.tsx components/admin/MenuItemsTable.test.tsx "app/(admin)/menu-items/page.tsx"
+git add components/admin/MenuItemsTable.tsx components/admin/MenuItemsTable.test.tsx "app/admin/(dashboard)/menu-items/page.tsx"
 git commit -m "feat: add menu items list page with search, filter, and scoped reorder"
 ```
 
@@ -4487,7 +4487,7 @@ git commit -m "feat: add restaurant info validation schema and Server Action"
 **Files:**
 - Create: `components/admin/RestaurantInfoForm.tsx`
 - Create: `components/admin/RestaurantInfoForm.test.tsx`
-- Create: `app/(admin)/restaurant-info/page.tsx`
+- Create: `app/admin/(dashboard)/restaurant-info/page.tsx`
 
 **Interfaces:**
 - Consumes: `restaurantInfoSchema`/`RestaurantInfoFormValues` (Task 19), `updateRestaurantInfo` (Task 19), `ImageUploader` (Task 12, used twice — `bucket="site-media"` for both logo and hero image), `RestaurantInfo` type (already exists), `getRestaurantInfo` (already exists).
@@ -4738,7 +4738,7 @@ export function RestaurantInfoForm({ info }: { info: RestaurantInfo }) {
 Run: `npx vitest run components/admin/RestaurantInfoForm.test.tsx`
 Expected: PASS (4 tests)
 
-- [ ] **Step 5: Create `app/(admin)/restaurant-info/page.tsx`**
+- [ ] **Step 5: Create `app/admin/(dashboard)/restaurant-info/page.tsx`**
 
 ```tsx
 import { createServerSupabaseClient } from '@/lib/supabase/server';
@@ -4771,7 +4771,7 @@ Expected: all pass.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add components/admin/RestaurantInfoForm.tsx components/admin/RestaurantInfoForm.test.tsx "app/(admin)/restaurant-info/page.tsx"
+git add components/admin/RestaurantInfoForm.tsx components/admin/RestaurantInfoForm.test.tsx "app/admin/(dashboard)/restaurant-info/page.tsx"
 git commit -m "feat: add restaurant info edit form and page"
 ```
 
@@ -4964,7 +4964,7 @@ git commit -m "feat: add gallery image validation schema and Server Actions"
 **Files:**
 - Create: `components/admin/GalleryManager.tsx`
 - Create: `components/admin/GalleryManager.test.tsx`
-- Create: `app/(admin)/gallery/page.tsx`
+- Create: `app/admin/(dashboard)/gallery/page.tsx`
 
 **Interfaces:**
 - Consumes: `createBrowserSupabaseClient`, `createGalleryImage`/`updateGalleryImageCaption`/`deleteGalleryImage`/`reorderGalleryImages` (Task 21), `SortableList` (Task 12), `ConfirmDeleteDialog` (Task 11), `getGalleryImages` (already exists).
@@ -5271,7 +5271,7 @@ export function GalleryManager({ images }: { images: GalleryImage[] }) {
 Run: `npx vitest run components/admin/GalleryManager.test.tsx`
 Expected: PASS (4 tests)
 
-- [ ] **Step 5: Create `app/(admin)/gallery/page.tsx`**
+- [ ] **Step 5: Create `app/admin/(dashboard)/gallery/page.tsx`**
 
 ```tsx
 import { createServerSupabaseClient } from '@/lib/supabase/server';
@@ -5306,7 +5306,7 @@ Expected: all pass.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add components/admin/GalleryManager.tsx components/admin/GalleryManager.test.tsx "app/(admin)/gallery/page.tsx"
+git add components/admin/GalleryManager.tsx components/admin/GalleryManager.test.tsx "app/admin/(dashboard)/gallery/page.tsx"
 git commit -m "feat: add gallery management page with multi-upload, captions, and reorder"
 ```
 
