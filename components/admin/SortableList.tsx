@@ -24,11 +24,9 @@ export function SortableList<T extends { id: string }>({
     <DragDropProvider
       onDragEnd={(event) => {
         if (event.canceled) return;
-        setLocalItems((current) => {
-          const next = move(current, event);
-          onReorder(next.map((item) => item.id));
-          return next;
-        });
+        const next = move(localItems, event);
+        setLocalItems(next);
+        onReorder(next.map((item) => item.id));
       }}
     >
       <ul className="space-y-2">

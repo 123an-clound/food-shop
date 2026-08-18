@@ -85,11 +85,15 @@ export function GalleryManager({ images }: { images: GalleryImage[] }) {
       const result = await reorderGalleryImages(orderedIds);
       if (!result.success) {
         toast.error(result.error);
+        return;
       }
+      router.refresh();
     });
   }
 
   async function handleCaptionBlur(image: GalleryImage, field: 'caption_vi' | 'caption_en', value: string) {
+    if (value === image[field]) return;
+
     const result = await updateGalleryImageCaption(
       image.id,
       field === 'caption_vi' ? value : image.caption_vi,

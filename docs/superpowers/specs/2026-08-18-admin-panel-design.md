@@ -35,24 +35,25 @@ Xây dựng khu vực `/admin/**` để chủ nhà hàng tự quản lý nội d
 
 ```
 app/
-  (admin)/
-    layout.tsx              # getUser() double-check + is_admin() double-check, sidebar cố định trái, theme sáng
-    error.tsx                # error boundary đơn giản cho khu vực admin
-    page.tsx                 # Dashboard /admin
+  admin/
     login/
-      page.tsx                # /admin/login — nằm NGOÀI layout có sidebar
-    menu-items/
-      page.tsx                 # Bảng danh sách + tìm kiếm + lọc theo danh mục
-      new/page.tsx              # Form thêm món
-      [id]/edit/page.tsx        # Form sửa món
-    categories/
-      page.tsx
-      new/page.tsx
-      [id]/edit/page.tsx
-    restaurant-info/
-      page.tsx                 # Form 1 dòng duy nhất (id=1)
-    gallery/
-      page.tsx                 # Upload nhiều ảnh + kéo-thả sắp xếp + xoá
+      page.tsx                # /admin/login — nằm NGOÀI layout có sidebar (sibling của (dashboard))
+    (dashboard)/
+      layout.tsx              # getUser() double-check + is_admin() double-check, sidebar cố định trái, theme sáng
+      error.tsx                # error boundary đơn giản cho khu vực admin
+      page.tsx                 # Dashboard /admin
+      menu-items/
+        page.tsx                 # Bảng danh sách + tìm kiếm + lọc theo danh mục
+        new/page.tsx              # Form thêm món
+        [id]/edit/page.tsx        # Form sửa món
+      categories/
+        page.tsx
+        new/page.tsx
+        [id]/edit/page.tsx
+      restaurant-info/
+        page.tsx                 # Form 1 dòng duy nhất (id=1)
+      gallery/
+        page.tsx                 # Upload nhiều ảnh + kéo-thả sắp xếp + xoá
   actions/
     menu-items.ts              # 'use server'
     categories.ts
@@ -79,7 +80,7 @@ components/ui/                  # shadcn primitives: button, input, textarea, la
                                  # select, table, dialog, sonner, card, form
 ```
 
-`(admin)` là route group độc lập với `(site)` — không dùng chung `Navbar`/`Footer`/`LanguageProvider`. Giao diện admin không song ngữ (chỉ dữ liệu nhập vào mới có 2 trường `_vi`/`_en`).
+`app/admin/` là một folder **thực** (không phải route group) để `/admin` thực sự xuất hiện trong URL — route group (dấu ngoặc đơn) không tự đóng góp segment URL, chỉ dùng để nhóm layout. Bên trong `app/admin/`, `(dashboard)` là route group lồng bên trong, gom `layout.tsx` (sidebar cố định trái, theme sáng, double-check `getUser()`/`is_admin()`) + toàn bộ trang quản trị (`page.tsx`, `menu-items/`, `categories/`, `restaurant-info/`, `gallery/`), tách biệt khỏi `app/admin/login/` (nằm ngoài `(dashboard)`, không có sidebar). `(dashboard)` không dùng chung `Navbar`/`Footer`/`LanguageProvider` với `(site)` — giao diện admin không song ngữ (chỉ dữ liệu nhập vào mới có 2 trường `_vi`/`_en`).
 
 ## 4. Luồng xác thực
 
@@ -93,7 +94,7 @@ components/ui/                  # shadcn primitives: button, input, textarea, la
 
 **`/admin/login`:** Client Component, form email/password → `createBrowserSupabaseClient().auth.signInWithPassword()` → thành công thì `router.push('/admin')` + `router.refresh()`. Sai mật khẩu → hiển thị lỗi tại chỗ. Đăng nhập được nhưng không có trong `admin_users` → middleware sẽ redirect ngược lại kèm `?error=unauthorized`, trang login đọc query param này để hiển thị "Tài khoản không có quyền truy cập".
 
-**`(admin)/layout.tsx`:** double-check `getUser()` + `is_admin()` một lần nữa (phòng thủ 2 lớp, không tin tưởng tuyệt đối middleware) trước khi render sidebar + children; nếu fail thì `redirect('/admin/login')`.
+**`app/admin/(dashboard)/layout.tsx`:** double-check `getUser()` + `is_admin()` một lần nữa (phòng thủ 2 lớp, không tin tưởng tuyệt đối middleware) trước khi render sidebar + children; nếu fail thì `redirect('/admin/login')`.
 
 **Đăng xuất:** nút trong sidebar gọi `createBrowserSupabaseClient().auth.signOut()` rồi `router.push('/admin/login')`.
 
@@ -141,7 +142,7 @@ Server Component, 4 câu `count: 'exact', head: true` song song: tổng món ăn
 - Lỗi Supabase trong action → bắt lại, trả `ActionResult` lỗi, form hiển thị bằng `Sonner` toast đỏ, không throw.
 - `getUser()`/`is_admin()` lỗi kết nối (không phải "không có quyền" mà lỗi hạ tầng thật) → coi như chưa xác thực, redirect `/admin/login` (an toàn hơn để lộ trang quản trị khi không chắc).
 - Xoá có xác nhận qua `ConfirmDeleteDialog` (shadcn `Dialog`), không dùng `confirm()` của trình duyệt.
-- `app/(admin)/error.tsx`: error boundary đơn giản, không cần tinh chỉnh nhiều như site công khai vì đây là khu vực chỉ admin thấy.
+- `app/admin/(dashboard)/error.tsx`: error boundary đơn giản, không cần tinh chỉnh nhiều như site công khai vì đây là khu vực chỉ admin thấy. Chỉ bắt lỗi từ các trang bên trong `(dashboard)`, không bắt lỗi ném ra từ chính `(dashboard)/layout.tsx` — lỗi đó rơi xuống `app/error.tsx` ở cấp cao hơn.
 
 ## 10. Chiến lược test (TDD)
 

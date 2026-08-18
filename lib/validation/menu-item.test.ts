@@ -43,6 +43,18 @@ describe('menuItemSchema', () => {
     }
   });
 
+  it('rejects an image_url that is not empty and not a valid URL', () => {
+    expect(menuItemSchema.safeParse({ ...validInput, image_url: 'not-a-url' }).success).toBe(false);
+  });
+
+  it('accepts a valid image_url', () => {
+    const result = menuItemSchema.safeParse({
+      ...validInput,
+      image_url: 'https://x.supabase.co/storage/v1/object/public/dish-images/a.jpg',
+    });
+    expect(result.success).toBe(true);
+  });
+
   it('defaults is_available to true and is_featured to false when omitted', () => {
     const { is_available, is_featured, ...rest } = validInput;
     const result = menuItemSchema.safeParse(rest);
