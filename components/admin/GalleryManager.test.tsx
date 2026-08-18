@@ -95,6 +95,61 @@ describe('GalleryManager', () => {
     });
   });
 
+  it('refreshes after each successful caption save so a stale closure cannot revert the sibling field', async () => {
+    // Regression test: handleCaptionBlur reads its "other" caption value from
+    // the closure-captured `image` prop. Without a refresh after each save,
+    // editing VI then EN on the same row would silently revert VI to its old
+    // value on the second blur, because the component keeps no local state
+    // mirroring saved edits. Calling router.refresh() after each successful
+    // save is what lets the next render pick up the freshly saved value.
+    updateGalleryImageCaptionMock.mockResolvedValue({ success: true });
+    render(<GalleryManager images={images} />);
+    const viInput = screen.getByDisplayValue('Không gian chính');
+    const enInput = screen.getByDisplayValue('Main space');
+
+    fireEvent.change(viInput, { target: { value: 'Không gian mới' } });
+    fireEvent.blur(viInput);
+    await waitFor(() => {
+      expect(updateGalleryImageCaptionMock).toHaveBeenCalledTimes(1);
+    });
+    expect(refreshMock).toHaveBeenCalledTimes(1);
+
+    fireEvent.change(enInput, { target: { value: 'New main space' } });
+    fireEvent.blur(enInput);
+    await waitFor(() => {
+      expect(updateGalleryImageCaptionMock).toHaveBeenCalledTimes(2);
+    });
+    expect(refreshMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('continues to the next file when one upload throws instead of returning an error', async () => {
+    // Regression test: a thrown exception (e.g. a network-level failure) from
+    // storage.upload used to escape the for-loop entirely, leaving the button
+    // stuck on "Đang tải lên…" and silently skipping every remaining file.
+    uploadMock.mockRejectedValueOnce(new Error('network fail')).mockResolvedValueOnce({ error: null });
+    getPublicUrlMock.mockReturnValue({ data: { publicUrl: 'https://x.supabase.co/good.jpg' } });
+    createGalleryImageMock.mockResolvedValue({ success: true });
+    render(<GalleryManager images={images} />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, {
+      target: {
+        files: [makeFile('bad.jpg', 'image/jpeg', 1024), makeFile('good.jpg', 'image/jpeg', 1024)],
+      },
+    });
+
+    await waitFor(() => {
+      expect(createGalleryImageMock).toHaveBeenCalledTimes(1);
+    });
+    expect(uploadMock).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('alert')).toHaveTextContent('Upload "bad.jpg" thất bại.');
+
+    // The upload button must not be left stuck on "Đang tải lên…".
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Tải ảnh lên' })).toBeInTheDocument();
+    });
+    expect(refreshMock).toHaveBeenCalled();
+  });
+
   it('opens the confirm dialog and deletes on confirm', async () => {
     deleteGalleryImageMock.mockResolvedValue({ success: true });
     render(<GalleryManager images={images} />);

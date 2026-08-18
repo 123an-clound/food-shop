@@ -37,38 +37,47 @@ export function GalleryManager({ images }: { images: GalleryImage[] }) {
     setIsUploading(true);
     const supabase = createBrowserSupabaseClient();
 
-    for (const file of files) {
-      if (!ACCEPTED_TYPES.includes(file.type)) {
-        setUploadError(`"${file.name}": chỉ chấp nhận ảnh JPG, PNG hoặc WEBP.`);
-        continue;
-      }
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        setUploadError(`"${file.name}": dung lượng tối đa là 5MB.`);
-        continue;
-      }
+    try {
+      for (const file of files) {
+        if (!ACCEPTED_TYPES.includes(file.type)) {
+          setUploadError(`"${file.name}": chỉ chấp nhận ảnh JPG, PNG hoặc WEBP.`);
+          continue;
+        }
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          setUploadError(`"${file.name}": dung lượng tối đa là 5MB.`);
+          continue;
+        }
 
-      const extension = file.name.split('.').pop();
-      const path = `${crypto.randomUUID()}.${extension}`;
-      const { error: uploadErr } = await supabase.storage.from('site-media').upload(path, file);
-      if (uploadErr) {
-        setUploadError(`Upload "${file.name}" thất bại.`);
-        continue;
-      }
+        try {
+          const extension = file.name.split('.').pop();
+          const path = `${crypto.randomUUID()}.${extension}`;
+          const { error: uploadErr } = await supabase.storage.from('site-media').upload(path, file);
+          if (uploadErr) {
+            setUploadError(`Upload "${file.name}" thất bại.`);
+            continue;
+          }
 
-      const { data } = supabase.storage.from('site-media').getPublicUrl(path);
-      const formData = new FormData();
-      formData.set('image_url', data.publicUrl);
-      formData.set('caption_vi', '');
-      formData.set('caption_en', '');
-      const result = await createGalleryImage(formData);
-      if (!result.success) {
-        setUploadError(result.error);
+          const { data } = supabase.storage.from('site-media').getPublicUrl(path);
+          const formData = new FormData();
+          formData.set('image_url', data.publicUrl);
+          formData.set('caption_vi', '');
+          formData.set('caption_en', '');
+          const result = await createGalleryImage(formData);
+          if (!result.success) {
+            setUploadError(result.error);
+          }
+        } catch {
+          // A thrown exception (e.g. a network-level failure) is reported the
+          // same way as an explicit `{ error }` result, so it doesn't abort
+          // the rest of the batch — the loop moves on to the next file.
+          setUploadError(`Upload "${file.name}" thất bại.`);
+        }
       }
+    } finally {
+      setIsUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
+      router.refresh();
     }
-
-    setIsUploading(false);
-    if (inputRef.current) inputRef.current.value = '';
-    router.refresh();
   }
 
   function handleReorder(orderedIds: string[]) {
@@ -88,7 +97,12 @@ export function GalleryManager({ images }: { images: GalleryImage[] }) {
     );
     if (!result.success) {
       toast.error(result.error);
+      return;
     }
+    // Refresh so the `images` prop reflects the just-saved value — otherwise
+    // a second blur on the sibling caption field of the same row would read
+    // the other field from this stale, closure-captured `image` and revert it.
+    router.refresh();
   }
 
   async function handleConfirmDelete() {
