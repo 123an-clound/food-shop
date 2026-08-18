@@ -15,6 +15,9 @@ const createMenuItemMock = vi.fn();
 const updateMenuItemMock = vi.fn();
 const toastSuccessMock = vi.fn();
 const toastErrorMock = vi.fn();
+const removeMock = vi.fn();
+
+const NEW_IMAGE_URL = 'https://x.supabase.co/storage/v1/object/public/dish-images/new.jpg';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: pushMock, refresh: refreshMock }),
@@ -32,8 +35,33 @@ vi.mock('sonner', () => ({
   },
 }));
 
+vi.mock('@/lib/supabase/client', () => ({
+  createBrowserSupabaseClient: () => ({
+    storage: {
+      from: () => ({ remove: removeMock }),
+    },
+  }),
+}));
+
+// A minimal stub that still exposes `onUploaded` so tests can simulate a
+// replaced image without exercising the real upload flow (covered by
+// ImageUploader.test.tsx). `extractStoragePath` is re-exported with its real
+// implementation since MenuItemForm imports and calls it directly.
 vi.mock('@/components/admin/ImageUploader', () => ({
-  ImageUploader: ({ label }: { label: string }) => <div>{label}</div>,
+  ImageUploader: ({ label, onUploaded }: { label: string; onUploaded: (url: string) => void }) => (
+    <div>
+      <span>{label}</span>
+      <button type="button" onClick={() => onUploaded(NEW_IMAGE_URL)}>
+        {`Đổi ảnh: ${label}`}
+      </button>
+    </div>
+  ),
+  extractStoragePath: (url: string, bucket: string) => {
+    const marker = `/object/public/${bucket}/`;
+    const index = url.indexOf(marker);
+    if (index === -1) return null;
+    return url.slice(index + marker.length);
+  },
 }));
 
 const categories = [
@@ -56,6 +84,7 @@ describe('MenuItemForm', () => {
     updateMenuItemMock.mockReset();
     toastSuccessMock.mockClear();
     toastErrorMock.mockClear();
+    removeMock.mockReset().mockResolvedValue({ error: null });
   });
 
   it('shows a validation error when the price is not positive', async () => {
@@ -112,5 +141,62 @@ describe('MenuItemForm', () => {
       expect(toastErrorMock).toHaveBeenCalledWith('Lỗi lưu dữ liệu.');
     });
     expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it('deletes the old dish image from storage after a successful save when the image was replaced', async () => {
+    updateMenuItemMock.mockResolvedValue({ success: true });
+    render(
+      <MenuItemForm
+        categories={categories}
+        item={{
+          id: 'item-1',
+          category_id: 'cat-1',
+          name_vi: 'Phở bò',
+          name_en: 'Beef Pho',
+          description_vi: '',
+          description_en: '',
+          price: 100000,
+          image_url: 'https://x.supabase.co/storage/v1/object/public/dish-images/old.jpg',
+          is_available: true,
+          is_featured: false,
+          display_order: 1,
+        }}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Đổi ảnh: Ảnh món ăn' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+    await waitFor(() => {
+      expect(updateMenuItemMock).toHaveBeenCalledWith('item-1', expect.any(FormData));
+    });
+    await waitFor(() => {
+      expect(removeMock).toHaveBeenCalledWith(['old.jpg']);
+    });
+  });
+
+  it('does not delete anything when the dish image was not replaced', async () => {
+    updateMenuItemMock.mockResolvedValue({ success: true });
+    render(
+      <MenuItemForm
+        categories={categories}
+        item={{
+          id: 'item-1',
+          category_id: 'cat-1',
+          name_vi: 'Phở bò',
+          name_en: 'Beef Pho',
+          description_vi: '',
+          description_en: '',
+          price: 100000,
+          image_url: 'https://x.supabase.co/storage/v1/object/public/dish-images/old.jpg',
+          is_available: true,
+          is_featured: false,
+          display_order: 1,
+        }}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+    await waitFor(() => {
+      expect(updateMenuItemMock).toHaveBeenCalledWith('item-1', expect.any(FormData));
+    });
+    expect(removeMock).not.toHaveBeenCalled();
   });
 });

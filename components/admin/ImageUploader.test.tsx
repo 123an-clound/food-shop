@@ -62,23 +62,39 @@ describe('ImageUploader', () => {
     expect(removeMock).not.toHaveBeenCalled();
   });
 
-  it('deletes the previous file from storage when an existing image is replaced', async () => {
+  it('does not delete the previous file itself when an existing image is replaced', async () => {
+    // Deleting the replaced file is now the parent form's responsibility,
+    // done only after the Server Action successfully saves the new URL (see
+    // MenuItemForm.test.tsx / RestaurantInfoForm.test.tsx). ImageUploader
+    // itself must never touch the old file.
     uploadMock.mockResolvedValue({ error: null });
     getPublicUrlMock.mockReturnValue({
       data: { publicUrl: 'https://x.supabase.co/storage/v1/object/public/dish-images/new.jpg' },
     });
+    const onUploaded = vi.fn();
     render(
       <ImageUploader
         bucket="dish-images"
         label="Ảnh món ăn"
         existingUrl="https://x.supabase.co/storage/v1/object/public/dish-images/old.jpg"
-        onUploaded={vi.fn()}
+        onUploaded={onUploaded}
       />
     );
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [makeFile('new.jpg', 'image/jpeg', 1024)] } });
     await waitFor(() => {
-      expect(removeMock).toHaveBeenCalledWith(['old.jpg']);
+      expect(onUploaded).toHaveBeenCalledWith(
+        'https://x.supabase.co/storage/v1/object/public/dish-images/new.jpg'
+      );
     });
+    expect(removeMock).not.toHaveBeenCalled();
+  });
+
+  it('clears the file input value after a validation failure so re-picking the same file fires a change event', async () => {
+    render(<ImageUploader bucket="dish-images" label="Ảnh món ăn" onUploaded={vi.fn()} />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [makeFile('a.gif', 'image/gif', 100)] } });
+    await screen.findByText('Chỉ chấp nhận ảnh JPG, PNG hoặc WEBP.');
+    expect(input.value).toBe('');
   });
 });

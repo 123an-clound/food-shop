@@ -9,18 +9,20 @@ import type { z } from 'zod';
 
 import { menuItemSchema, type MenuItemFormValues } from '@/lib/validation/menu-item';
 import { createMenuItem, updateMenuItem } from '@/app/actions/menu-items';
+import { createBrowserSupabaseClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { ImageUploader } from '@/components/admin/ImageUploader';
+import { ImageUploader, extractStoragePath } from '@/components/admin/ImageUploader';
 import type { Category, MenuItem } from '@/lib/types';
 
 export function MenuItemForm({ item, categories }: { item?: MenuItem; categories: Category[] }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const originalImageUrl = item?.image_url ?? '';
 
   const form = useForm<z.input<typeof menuItemSchema>, unknown, MenuItemFormValues>({
     resolver: zodResolver(menuItemSchema),
@@ -57,6 +59,18 @@ export function MenuItemForm({ item, categories }: { item?: MenuItem; categories
     if (!result.success) {
       toast.error(result.error);
       return;
+    }
+
+    // Only after the Server Action has successfully persisted the new
+    // image_url do we delete the old file from Storage — deleting it earlier
+    // (e.g. at upload time) would permanently lose it if the save above had
+    // failed or the form was abandoned before submit.
+    if (originalImageUrl && originalImageUrl !== values.image_url) {
+      const oldPath = extractStoragePath(originalImageUrl, 'dish-images');
+      if (oldPath) {
+        const supabase = createBrowserSupabaseClient();
+        await supabase.storage.from('dish-images').remove([oldPath]);
+      }
     }
 
     toast.success(item ? 'Đã cập nhật món ăn.' : 'Đã thêm món ăn.');
