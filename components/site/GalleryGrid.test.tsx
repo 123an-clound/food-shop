@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import type { GalleryImage } from '@/lib/types';
 import { GalleryGrid } from './GalleryGrid';
 
@@ -39,5 +40,37 @@ describe('GalleryGrid', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Close'));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('closes the lightbox when Escape key is pressed', async () => {
+    render(<GalleryGrid images={images} locale="vi" />);
+    fireEvent.click(screen.getByAltText('Không gian chính'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+
+  it('moves focus to the close button when the lightbox opens', async () => {
+    render(<GalleryGrid images={images} locale="vi" />);
+    const thumbnail = screen.getByAltText('Sân vườn');
+    fireEvent.click(thumbnail);
+    await waitFor(() => {
+      const closeButton = screen.getByLabelText('Close');
+      expect(closeButton).toHaveFocus();
+    });
+  });
+
+  it('returns focus to the thumbnail when the lightbox closes', async () => {
+    render(<GalleryGrid images={images} locale="vi" />);
+    const image = screen.getByAltText('Không gian chính');
+    const thumbnailButton = image.closest('button') as HTMLButtonElement;
+    fireEvent.click(thumbnailButton);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Close'));
+    await waitFor(() => {
+      expect(thumbnailButton).toHaveFocus();
+    });
   });
 });

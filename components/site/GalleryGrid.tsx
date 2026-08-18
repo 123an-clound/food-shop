@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { localize } from '@/lib/i18n/localize';
 import type { Locale } from '@/lib/i18n/localize';
@@ -8,7 +8,44 @@ import type { GalleryImage } from '@/lib/types';
 
 export function GalleryGrid({ images, locale }: { images: GalleryImage[]; locale: Locale }) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const thumbnailRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const focusedThumbnailIdRef = useRef<string | null>(null);
   const openImage = images.find((image) => image.id === openId) ?? null;
+
+  // Handle focus management and keyboard events
+  useEffect(() => {
+    if (openImage) {
+      // Move focus to close button when dialog opens
+      setTimeout(() => {
+        closeButtonRef.current?.focus();
+      }, 0);
+
+      // Handle Escape key to close dialog
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          setOpenId(null);
+        }
+      };
+
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    } else if (focusedThumbnailIdRef.current) {
+      // Return focus to the thumbnail that opened the dialog
+      const thumbnail = thumbnailRefs.current.get(focusedThumbnailIdRef.current);
+      if (thumbnail) {
+        thumbnail.focus();
+      }
+      focusedThumbnailIdRef.current = null;
+    }
+  }, [openImage]);
+
+  const handleThumbnailClick = (imageId: string) => {
+    focusedThumbnailIdRef.current = imageId;
+    setOpenId(imageId);
+  };
 
   return (
     <>
@@ -16,8 +53,11 @@ export function GalleryGrid({ images, locale }: { images: GalleryImage[]; locale
         {images.map((image) => (
           <button
             key={image.id}
+            ref={(el) => {
+              if (el) thumbnailRefs.current.set(image.id, el);
+            }}
             type="button"
-            onClick={() => setOpenId(image.id)}
+            onClick={() => handleThumbnailClick(image.id)}
             className="relative aspect-square overflow-hidden rounded-lg"
           >
             <Image
@@ -47,6 +87,7 @@ export function GalleryGrid({ images, locale }: { images: GalleryImage[]; locale
             />
           </div>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={() => setOpenId(null)}
             aria-label="Close"
