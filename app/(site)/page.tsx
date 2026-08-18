@@ -32,7 +32,14 @@ export default async function HomePage() {
   return (
     <>
       <section className="relative flex h-[70vh] min-h-[420px] items-end">
-        <Image src={restaurantInfo.hero_image_url} alt={name} fill priority className="object-cover" />
+        <Image
+          src={restaurantInfo.hero_image_url}
+          alt={name}
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+        />
         <div className="absolute inset-0 bg-charcoal/50" />
         <div className="relative z-10 mx-auto max-w-6xl px-4 pb-16 text-ivory">
           <h1 className="font-heading text-4xl md:text-6xl">{name}</h1>

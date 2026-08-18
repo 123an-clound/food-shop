@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Playfair_Display, Be_Vietnam_Pro } from 'next/font/google';
+import { getServerLocale } from '@/lib/i18n/server-locale';
 import './globals.css';
 
 const playfair = Playfair_Display({
@@ -20,9 +21,11 @@ export const metadata: Metadata = {
   description: 'Tinh hoa ẩm thực ba miền — The Soul of Vietnamese Cuisine',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getServerLocale();
+
   return (
-    <html lang="vi">
+    <html lang={locale}>
       <body className={`${playfair.variable} ${beVietnamPro.variable} font-body`}>
         {children}
       </body>

@@ -21,6 +21,8 @@ export const dictionaries = {
       ourStoryHeading: 'Câu chuyện của chúng tôi',
       ourSpaceHeading: 'Không gian nhà hàng',
       contactHeading: 'Liên hệ với chúng tôi',
+      openMenuLabel: 'Mở menu điều hướng',
+      closeMenuLabel: 'Đóng menu điều hướng',
     },
   },
   en: {
@@ -43,6 +45,8 @@ export const dictionaries = {
       ourStoryHeading: 'Our Story',
       ourSpaceHeading: 'Our Space',
       contactHeading: 'Contact Us',
+      openMenuLabel: 'Open navigation menu',
+      closeMenuLabel: 'Close navigation menu',
     },
   },
 } as const satisfies Record<Locale, unknown>;

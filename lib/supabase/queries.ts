@@ -51,7 +51,7 @@ export async function getGalleryImages(
     .from('gallery_images')
     .select('*')
     .order('display_order', { ascending: true });
-  const query = limit ? base.limit(limit) : base;
+  const query = limit !== undefined ? base.limit(limit) : base;
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as GalleryImage[];

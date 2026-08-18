@@ -19,7 +19,7 @@ export function LanguageToggle() {
         type="button"
         onClick={() => handleSelect('vi')}
         aria-pressed={locale === 'vi'}
-        className={locale === 'vi' ? 'text-gold' : 'text-charcoal/60'}
+        className={locale === 'vi' ? 'font-semibold text-burgundy underline' : 'text-charcoal/80'}
       >
         VI
       </button>
@@ -28,7 +28,7 @@ export function LanguageToggle() {
         type="button"
         onClick={() => handleSelect('en')}
         aria-pressed={locale === 'en'}
-        className={locale === 'en' ? 'text-gold' : 'text-charcoal/60'}
+        className={locale === 'en' ? 'font-semibold text-burgundy underline' : 'text-charcoal/80'}
       >
         EN
       </button>

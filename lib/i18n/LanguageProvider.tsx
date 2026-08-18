@@ -22,7 +22,7 @@ export function LanguageProvider({
 
   const setLocale = useCallback((next: Locale) => {
     setLocaleState(next);
-    document.cookie = `${LOCALE_COOKIE_NAME}=${next}; path=/; max-age=31536000`;
+    document.cookie = `${LOCALE_COOKIE_NAME}=${next}; path=/; max-age=31536000; SameSite=Lax`;
   }, []);
 
   return (

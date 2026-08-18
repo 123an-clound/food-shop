@@ -26,6 +26,7 @@ export default async function AboutPage() {
           src={restaurantInfo.hero_image_url}
           alt={localize(restaurantInfo.name_vi, restaurantInfo.name_en, locale)}
           fill
+          sizes="(min-width: 1024px) 896px, 100vw"
           className="object-cover"
         />
       </div>

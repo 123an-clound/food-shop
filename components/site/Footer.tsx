@@ -2,12 +2,13 @@
 
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { getDictionary } from '@/lib/i18n/dictionaries';
+import { localize } from '@/lib/i18n/localize';
 import type { RestaurantInfo } from '@/lib/types';
 
 export function Footer({ restaurantInfo }: { restaurantInfo: RestaurantInfo }) {
   const { locale } = useLanguage();
   const dict = getDictionary(locale);
-  const name = locale === 'vi' ? restaurantInfo.name_vi : restaurantInfo.name_en;
+  const name = localize(restaurantInfo.name_vi, restaurantInfo.name_en, locale);
 
   return (
     <footer className="mt-16 border-t border-gold/30 bg-charcoal py-10 text-ivory">

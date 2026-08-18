@@ -75,6 +75,7 @@ export function GalleryGrid({ images, locale }: { images: GalleryImage[]; locale
         <div
           role="dialog"
           aria-modal="true"
+          aria-label={localize(openImage.caption_vi, openImage.caption_en, locale)}
           className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/90 p-4"
           onClick={() => setOpenId(null)}
         >
@@ -83,6 +84,7 @@ export function GalleryGrid({ images, locale }: { images: GalleryImage[]; locale
               src={openImage.image_url}
               alt={localize(openImage.caption_vi, openImage.caption_en, locale)}
               fill
+              sizes="(min-width: 1024px) 896px, 100vw"
               className="object-contain"
             />
           </div>

@@ -75,7 +75,6 @@ returns boolean
 language sql
 security definer
 stable
-set search_path = public
 as $$
   select exists (
     select 1 from public.admin_users where user_id = auth.uid()
@@ -84,9 +83,7 @@ $$;
 
 -- ========== TRIGGER updated_at cho menu_items ==========
 create or replace function public.set_updated_at()
-returns trigger language plpgsql
-set search_path = public
-as $$
+returns trigger language plpgsql as $$
 begin
   new.updated_at = now();
   return new;

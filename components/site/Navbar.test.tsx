@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { LanguageProvider } from '@/lib/i18n/LanguageProvider';
 import { Navbar } from './Navbar';
 
@@ -26,5 +26,51 @@ describe('Navbar', () => {
     );
     expect(screen.getByText('Menu')).toBeInTheDocument();
     expect(screen.getByText('Contact')).toBeInTheDocument();
+  });
+
+  it('hides the mobile nav panel until the menu button is toggled open', () => {
+    render(
+      <LanguageProvider initialLocale="vi">
+        <Navbar />
+      </LanguageProvider>
+    );
+    expect(screen.queryByRole('navigation', { name: /điều hướng/i })).not.toBeInTheDocument();
+
+    const toggle = screen.getByRole('button', { name: 'Mở menu điều hướng' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'Đóng menu điều hướng' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: /điều hướng/i })).toBeInTheDocument();
+  });
+
+  it('closes the mobile nav panel when a link inside it is clicked', () => {
+    render(
+      <LanguageProvider initialLocale="vi">
+        <Navbar />
+      </LanguageProvider>
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Mở menu điều hướng' }));
+    const links = screen.getAllByText('Liên hệ');
+    fireEvent.click(links[links.length - 1]);
+    expect(screen.getByRole('button', { name: 'Mở menu điều hướng' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+  });
+
+  it('closes the mobile nav panel on Escape', () => {
+    render(
+      <LanguageProvider initialLocale="vi">
+        <Navbar />
+      </LanguageProvider>
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Mở menu điều hướng' }));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByRole('button', { name: 'Mở menu điều hướng' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
   });
 });
