@@ -4,11 +4,12 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getCategories } from '@/lib/supabase/queries';
 import { MenuItemForm } from '@/components/admin/MenuItemForm';
 
-export default async function EditMenuItemPage({ params }: { params: { id: string } }) {
+export default async function EditMenuItemPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = await createServerSupabaseClient();
   const [categories, { data: item }] = await Promise.all([
     getCategories(supabase),
-    supabase.from('menu_items').select('*').eq('id', params.id).single(),
+    supabase.from('menu_items').select('*').eq('id', id).single(),
   ]);
 
   if (!item) {

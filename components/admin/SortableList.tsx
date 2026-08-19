@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { DragDropProvider } from '@dnd-kit/react';
 import { useSortable } from '@dnd-kit/react/sortable';
 import { move } from '@dnd-kit/helpers';
@@ -15,10 +15,15 @@ export function SortableList<T extends { id: string }>({
   renderItem: (item: T, index: number) => ReactNode;
 }) {
   const [localItems, setLocalItems] = useState(items);
+  const [prevItems, setPrevItems] = useState(items);
 
-  useEffect(() => {
+  // Adjusting state during render (not in an effect) when the `items` prop
+  // changes — this is React's documented pattern for resetting derived
+  // state without an extra render/effect round-trip.
+  if (items !== prevItems) {
+    setPrevItems(items);
     setLocalItems(items);
-  }, [items]);
+  }
 
   return (
     <DragDropProvider
