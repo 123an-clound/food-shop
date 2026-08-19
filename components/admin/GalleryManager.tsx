@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 import { createBrowserSupabaseClient } from '@/lib/supabase/client';
+import { compressImage } from '@/lib/image-compression';
 import {
   createGalleryImage,
   deleteGalleryImage,
@@ -49,9 +50,10 @@ export function GalleryManager({ images }: { images: GalleryImage[] }) {
         }
 
         try {
-          const extension = file.name.split('.').pop();
+          const uploadFile = await compressImage(file);
+          const extension = uploadFile.name.split('.').pop();
           const path = `${crypto.randomUUID()}.${extension}`;
-          const { error: uploadErr } = await supabase.storage.from('site-media').upload(path, file);
+          const { error: uploadErr } = await supabase.storage.from('site-media').upload(path, uploadFile);
           if (uploadErr) {
             setUploadError(`Upload "${file.name}" thất bại.`);
             continue;

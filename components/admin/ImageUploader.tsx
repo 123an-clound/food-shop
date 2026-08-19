@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import Image from 'next/image';
 
 import { createBrowserSupabaseClient } from '@/lib/supabase/client';
+import { compressImage } from '@/lib/image-compression';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 
@@ -51,11 +52,12 @@ export function ImageUploader({
     setError(null);
     setIsUploading(true);
 
+    const uploadFile = await compressImage(file);
     const supabase = createBrowserSupabaseClient();
-    const extension = file.name.split('.').pop();
+    const extension = uploadFile.name.split('.').pop();
     const path = `${crypto.randomUUID()}.${extension}`;
 
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file);
+    const { error: uploadError } = await supabase.storage.from(bucket).upload(path, uploadFile);
     setIsUploading(false);
 
     if (uploadError) {
