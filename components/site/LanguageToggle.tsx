@@ -14,12 +14,12 @@ export function LanguageToggle() {
   }
 
   return (
-    <div className="flex items-center gap-1 text-sm font-medium" role="group" aria-label="Language">
+    <div className="flex items-center gap-1 text-xs font-semibold text-[var(--brand-ink)]" role="group" aria-label="Language">
       <button
         type="button"
         onClick={() => handleSelect('vi')}
         aria-pressed={locale === 'vi'}
-        className={locale === 'vi' ? 'font-semibold text-burgundy underline' : 'text-charcoal/80'}
+        className={`grid min-h-11 min-w-8 place-items-center ${locale === 'vi' ? 'underline underline-offset-4' : 'opacity-80 hover:opacity-100'}`}
       >
         VI
       </button>
@@ -28,7 +28,7 @@ export function LanguageToggle() {
         type="button"
         onClick={() => handleSelect('en')}
         aria-pressed={locale === 'en'}
-        className={locale === 'en' ? 'font-semibold text-burgundy underline' : 'text-charcoal/80'}
+        className={`grid min-h-11 min-w-8 place-items-center ${locale === 'en' ? 'underline underline-offset-4' : 'opacity-80 hover:opacity-100'}`}
       >
         EN
       </button>

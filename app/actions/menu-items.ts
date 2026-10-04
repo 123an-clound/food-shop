@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/actions/require-admin';
@@ -47,6 +47,7 @@ export async function createMenuItem(formData: FormData): Promise<ActionResult> 
 
   revalidatePath('/menu');
   revalidatePath('/');
+  updateTag('featured-menu');
   return { success: true };
 }
 
@@ -68,6 +69,7 @@ export async function updateMenuItem(id: string, formData: FormData): Promise<Ac
 
   revalidatePath('/menu');
   revalidatePath('/');
+  updateTag('featured-menu');
   return { success: true };
 }
 
@@ -84,6 +86,7 @@ export async function deleteMenuItem(id: string): Promise<ActionResult> {
 
   revalidatePath('/menu');
   revalidatePath('/');
+  updateTag('featured-menu');
   return { success: true };
 }
 
@@ -105,5 +108,6 @@ export async function reorderMenuItems(orderedIds: string[]): Promise<ActionResu
 
   revalidatePath('/menu');
   revalidatePath('/');
+  updateTag('featured-menu');
   return { success: true };
 }

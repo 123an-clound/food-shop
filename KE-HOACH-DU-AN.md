@@ -1,4 +1,6 @@
-# KẾ HOẠCH DỰ ÁN: Website Nhà Hàng "Hương Việt" + Trang Quản Trị (Admin)
+# KẾ HOẠCH DỰ ÁN (LƯU TRỮ): Website Nhà Hàng "Hương Việt" + Trang Quản Trị (Admin)
+
+> Kế hoạch ban đầu này không còn phản ánh giao diện tiệc cưới và sự kiện hiện tại. Xem `README.md` để biết chức năng và cách chạy mới.
 
 > File này được soạn để đưa cho **Claude Code** thực hiện xây dựng toàn bộ dự án (frontend nhà hàng + trang admin + kết nối Supabase) từ đầu đến cuối. Mọi quyết định kỹ thuật, schema database, nội dung mẫu đều đã được chốt sẵn trong file này để Claude Code không cần đoán mò.
 

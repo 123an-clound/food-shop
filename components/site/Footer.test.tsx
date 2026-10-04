@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { LanguageProvider } from '@/lib/i18n/LanguageProvider';
 import type { RestaurantInfo } from '@/lib/types';
 import { Footer } from './Footer';
+import { BookingProvider } from './BookingDialog';
 
 const restaurantInfo: RestaurantInfo = {
   id: 1,
@@ -24,23 +25,29 @@ const restaurantInfo: RestaurantInfo = {
 };
 
 describe('Footer', () => {
-  it('renders the Vietnamese name and contact details by default', () => {
+  it('renders the Vietnamese name without publishing demo contact details', () => {
     render(
       <LanguageProvider initialLocale="vi">
-        <Footer restaurantInfo={restaurantInfo} />
+        <BookingProvider><Footer restaurantInfo={restaurantInfo} /></BookingProvider>
       </LanguageProvider>
     );
-    expect(screen.getByText('Hương Việt')).toBeInTheDocument();
-    expect(screen.getByText(restaurantInfo.address)).toBeInTheDocument();
-    expect(screen.getByText(restaurantInfo.phone)).toBeInTheDocument();
+    expect(screen.getByRole('contentinfo')).toHaveTextContent('Hương Việt');
+    expect(screen.getByRole('contentinfo')).toHaveTextContent(restaurantInfo.address);
+    expect(screen.queryByRole('link', { name: restaurantInfo.phone })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Nhận tư vấn tiệc/ })).toBeInTheDocument();
+  });
+
+  it('shows a confirmed phone number as a callable link', () => {
+    render(<LanguageProvider initialLocale="vi"><BookingProvider><Footer restaurantInfo={{ ...restaurantInfo, phone: '090 000 0000' }} /></BookingProvider></LanguageProvider>);
+    expect(screen.getByRole('link', { name: '090 000 0000' })).toHaveAttribute('href', 'tel:0900000000');
   });
 
   it('renders the English name when locale is en', () => {
     render(
       <LanguageProvider initialLocale="en">
-        <Footer restaurantInfo={restaurantInfo} />
+        <BookingProvider><Footer restaurantInfo={restaurantInfo} /></BookingProvider>
       </LanguageProvider>
     );
-    expect(screen.getByText('Huong Viet Fine Dining')).toBeInTheDocument();
+    expect(screen.getByRole('contentinfo')).toHaveTextContent('Huong Viet Wedding & Events');
   });
 });

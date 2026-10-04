@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { isHttpsUrl } from '@/lib/security/external-url';
 
-const urlOrEmpty = z.union([z.literal(''), z.string().url('URL không hợp lệ')]);
+const urlOrEmpty = z.union([z.literal(''), z.string().url('URL không hợp lệ').refine(isHttpsUrl, 'URL phải dùng HTTPS')]);
 const emailOrEmpty = z.union([z.literal(''), z.string().email('Email không hợp lệ')]);
 
 export const restaurantInfoSchema = z.object({

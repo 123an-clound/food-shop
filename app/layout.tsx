@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Playfair_Display, Be_Vietnam_Pro } from 'next/font/google';
 import { getServerLocale } from '@/lib/i18n/server-locale';
+import { getSiteUrl } from '@/lib/site-url';
 import './globals.css';
 
 const playfair = Playfair_Display({
@@ -17,8 +18,9 @@ const beVietnamPro = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
-  title: 'Hương Việt | Huong Viet Fine Dining',
-  description: 'Tinh hoa ẩm thực ba miền — The Soul of Vietnamese Cuisine',
+  metadataBase: new URL(getSiteUrl()),
+  title: 'Hương Việt | Tiệc cưới, sự kiện & ẩm thực Việt',
+  description: 'Khám phá ý tưởng tiệc cưới, tổ chức sự kiện và thực đơn món Việt tại Hương Việt.',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

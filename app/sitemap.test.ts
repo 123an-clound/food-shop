@@ -8,6 +8,8 @@ describe('sitemap', () => {
 
     expect(urls).toEqual([
       'http://localhost:3000',
+      'http://localhost:3000/services',
+      'http://localhost:3000/packages',
       'http://localhost:3000/menu',
       'http://localhost:3000/about',
       'http://localhost:3000/gallery',

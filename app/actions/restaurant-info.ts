@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/actions/require-admin';
@@ -40,16 +40,7 @@ export async function updateRestaurantInfo(formData: FormData): Promise<ActionRe
     return { success: false, error: error.message };
   }
 
-  // restaurant_info is read by app/(site)/layout.tsx, which wraps every public
-  // page, so 'layout' here revalidates it everywhere at once rather than just
-  // at '/'. In today's build this call is actually a no-op in practice: every
-  // public route already calls cookies() (via getServerLocale() and
-  // createServerSupabaseClient()), which forces fully dynamic rendering with
-  // no cache to invalidate — confirmed during the public-site branch's final
-  // review. It's kept here anyway because that's an implementation detail of
-  // the current routes, not a guarantee; the moment any public route adopts
-  // static/ISR caching, this call becomes load-bearing, and it costs nothing
-  // to have it already correct.
+  updateTag('restaurant-info');
   revalidatePath('/', 'layout');
   return { success: true };
 }

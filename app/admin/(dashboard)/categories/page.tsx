@@ -11,8 +11,8 @@ export default async function CategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Danh mục</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div><p className="text-xs font-semibold uppercase tracking-[.24em] text-[var(--brand-accent)]">Ẩm thực Việt</p><h1 className="mt-2 font-heading text-3xl sm:text-4xl">Danh mục món</h1></div>
         <Button asChild>
           <Link href="/admin/categories/new">Thêm danh mục</Link>
         </Button>

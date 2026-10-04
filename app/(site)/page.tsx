@@ -1,92 +1,56 @@
-import Image from 'next/image';
-import Link from 'next/link';
+import type { Metadata } from 'next';
 import { getServerLocale } from '@/lib/i18n/server-locale';
-import { getDictionary } from '@/lib/i18n/dictionaries';
-import { localize } from '@/lib/i18n/localize';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import {
-  getRestaurantInfo,
-  getFeaturedMenuItems,
-  getGalleryImages,
-} from '@/lib/supabase/queries';
-import { DishCard } from '@/components/site/DishCard';
+import { getPublicEventPackages, getPublicFeaturedMenu, getPublicHomeGallery, getPublicRestaurantInfo, getPublicTestimonials } from '@/lib/supabase/public-data';
+import { HomeExperience } from '@/components/site/HomeExperience';
+import { publicBrandName, publicContact } from '@/lib/site-contact';
+
+export const metadata: Metadata = {
+  title: 'Hương Việt | Nhà hàng tiệc cưới & tổ chức sự kiện',
+  description: 'Khám phá không gian tiệc cưới, sự kiện và thực đơn món Việt tại Hương Việt. Gửi yêu cầu tư vấn cho ngày đặc biệt của bạn.',
+  alternates: { canonical: '/' },
+  openGraph: {
+    title: 'Hương Việt | Nhà hàng tiệc cưới & tổ chức sự kiện',
+    description: 'Không gian tiệc cưới và sự kiện cùng cảm hứng ẩm thực Việt.',
+    images: [{ url: '/images/wedding-hero.png', width: 1672, height: 941, alt: 'Không gian tiệc cưới, hình minh họa' }],
+  },
+  twitter: { card: 'summary_large_image', title: 'Hương Việt | Nhà hàng tiệc cưới & tổ chức sự kiện', images: ['/images/wedding-hero.png'] },
+};
+
+const stockGallery = [
+  { src: '/images/wedding-hero.png', altVi: 'Sảnh tiệc cưới, hình minh họa', altEn: 'Wedding banquet hall, illustrative image' },
+  { src: '/images/wedding-ceremony.png', altVi: 'Không gian lễ cưới, hình minh họa', altEn: 'Wedding ceremony setting, illustrative image' },
+  { src: '/images/event-gala.png', altVi: 'Không gian sự kiện, hình minh họa', altEn: 'Event gala setting, illustrative image' },
+  { src: '/images/table-setting.jpg', altVi: 'Bàn tiệc được chuẩn bị trong nhà hàng, ảnh minh họa', altEn: 'An elegantly set dining table, illustrative photo' },
+  { src: '/images/fine-dining.jpg', altVi: 'Món ăn trình bày tinh tế, ảnh minh họa', altEn: 'Thoughtfully plated dining, illustrative photo' },
+];
 
 export default async function HomePage() {
   const locale = await getServerLocale();
-  const dict = getDictionary(locale);
-  const supabase = await createServerSupabaseClient();
-  const [restaurantInfo, featuredItems, galleryPreview] = await Promise.all([
-    getRestaurantInfo(supabase),
-    getFeaturedMenuItems(supabase, 6),
-    getGalleryImages(supabase, 6),
+  const [restaurantInfo, galleryImages, featuredMenu, packages, testimonials] = await Promise.all([
+    getPublicRestaurantInfo(),
+    getPublicHomeGallery(),
+    getPublicFeaturedMenu(),
+    getPublicEventPackages(),
+    getPublicTestimonials(),
   ]);
+  const brandedGallery = galleryImages.filter((image) => !image.image_url.includes('picsum.photos'));
+  const contact = publicContact(restaurantInfo);
+  const gallery = brandedGallery.length >= 5
+    ? brandedGallery.slice(0, 5).map((image) => ({
+        src: image.image_url,
+        altVi: image.caption_vi || 'Không gian Hương Việt',
+        altEn: image.caption_en || image.caption_vi || 'Huong Viet gallery',
+      }))
+    : stockGallery;
 
-  const name = localize(restaurantInfo.name_vi, restaurantInfo.name_en, locale);
-  const tagline = localize(restaurantInfo.tagline_vi, restaurantInfo.tagline_en, locale);
-  const description = localize(
-    restaurantInfo.description_vi,
-    restaurantInfo.description_en,
-    locale
-  );
-
-  return (
-    <>
-      <section className="relative flex h-[70vh] min-h-[420px] items-end">
-        <Image
-          src={restaurantInfo.hero_image_url}
-          alt={name}
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-charcoal/50" />
-        <div className="relative z-10 mx-auto max-w-6xl px-4 pb-16 text-ivory">
-          <h1 className="font-heading text-4xl md:text-6xl">{name}</h1>
-          <p className="mt-2 text-lg text-gold">{tagline}</p>
-          <Link
-            href="/menu"
-            className="mt-6 inline-block rounded-full bg-burgundy px-6 py-3 text-sm font-medium text-ivory hover:bg-burgundy/90"
-          >
-            {dict.common.viewMenuCta}
-          </Link>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <p className="text-charcoal/80">{description}</p>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-4 py-16">
-        <h2 className="font-heading text-3xl text-burgundy">{dict.common.featuredDishesHeading}</h2>
-        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {featuredItems.map((item) => (
-            <DishCard key={item.id} item={item} locale={locale} />
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-4 py-16">
-        <div className="flex items-center justify-between">
-          <h2 className="font-heading text-3xl text-burgundy">{dict.common.ourSpaceHeading}</h2>
-          <Link href="/gallery" className="text-sm font-medium text-burgundy underline">
-            {dict.common.viewMoreGallery}
-          </Link>
-        </div>
-        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-3">
-          {galleryPreview.map((image) => (
-            <div key={image.id} className="relative aspect-square overflow-hidden rounded-lg">
-              <Image
-                src={image.image_url}
-                alt={localize(image.caption_vi, image.caption_en, locale)}
-                fill
-                className="object-cover"
-                sizes="(min-width: 768px) 33vw, 50vw"
-              />
-            </div>
-          ))}
-        </div>
-      </section>
-    </>
-  );
+  return <HomeExperience
+    name={publicBrandName(restaurantInfo, locale)}
+    phone={contact.phone}
+    email={contact.email}
+    heroImage={restaurantInfo.hero_image_url && !restaurantInfo.hero_image_url.includes('picsum.photos') ? restaurantInfo.hero_image_url : undefined}
+    gallery={gallery}
+    packages={packages}
+    featuredMenu={featuredMenu}
+    testimonials={testimonials}
+  />;
 }

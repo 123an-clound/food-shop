@@ -2,97 +2,68 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { Menu, X } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
-import { getDictionary } from '@/lib/i18n/dictionaries';
+import { useBooking } from './BookingDialog';
 import { LanguageToggle } from './LanguageToggle';
-
-const NAV_ITEMS = [
-  { href: '/', key: 'home' } as const,
-  { href: '/menu', key: 'menu' } as const,
-  { href: '/about', key: 'about' } as const,
-  { href: '/gallery', key: 'gallery' } as const,
-  { href: '/contact', key: 'contact' } as const,
-];
 
 export function Navbar() {
   const { locale } = useLanguage();
-  const dict = getDictionary(locale);
+  const openBooking = useBooking();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const vi = locale === 'vi';
+  const left = [
+    { href: '/services#weddings', label: vi ? 'Tiệc cưới' : 'Weddings' },
+    { href: '/packages', label: vi ? 'Gói tiệc' : 'Packages' },
+    { href: '/menu', label: vi ? 'Thực đơn' : 'Menu' },
+  ];
+  const right = [
+    { href: '/services#corporate', label: vi ? 'Sự kiện' : 'Events' },
+    { href: '/gallery', label: vi ? 'Hình ảnh' : 'Gallery' },
+    { href: '/contact', label: vi ? 'Liên hệ' : 'Contact' },
+  ];
 
   useEffect(() => {
     if (!isMenuOpen) return;
-    function handleKeyDown(event: KeyboardEvent) {
+    function onEscape(event: KeyboardEvent) {
       if (event.key === 'Escape') setIsMenuOpen(false);
     }
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', onEscape);
+    return () => document.removeEventListener('keydown', onEscape);
   }, [isMenuOpen]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-gold/30 bg-ivory/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <Link href="/" className="font-heading text-xl text-burgundy">
-          {locale === 'vi' ? 'Hương Việt' : 'Huong Viet'}
-        </Link>
-        <nav className="hidden gap-6 md:flex">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="text-sm font-medium text-charcoal hover:text-burgundy"
-            >
-              {dict.nav[item.key]}
-            </Link>
-          ))}
+    <header className="site-header fixed inset-x-0 top-0 z-40 bg-[#f8f6f1]/95 text-[var(--brand-ink)] backdrop-blur-md">
+      <div className="mx-auto grid h-[76px] max-w-[1512px] grid-cols-[1fr_auto_1fr] items-center gap-6 px-5 sm:px-8 xl:px-12">
+        <nav aria-label={vi ? 'Điều hướng chính bên trái' : 'Primary navigation left'} className="hidden items-center gap-6 xl:flex 2xl:gap-9">
+          {left.map((item) => <Link key={item.href} href={item.href} className="nav-link">{item.label}</Link>)}
         </nav>
-        <div className="flex items-center gap-4">
-          <LanguageToggle />
-          <button
-            type="button"
-            className="text-charcoal md:hidden"
-            aria-expanded={isMenuOpen}
-            aria-controls="mobile-nav"
-            aria-label={isMenuOpen ? dict.common.closeMenuLabel : dict.common.openMenuLabel}
-            onClick={() => setIsMenuOpen((open) => !open)}
-          >
-            {isMenuOpen ? (
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">
-                <path
-                  d="M6 6l12 12M18 6L6 18"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">
-                <path
-                  d="M4 7h16M4 12h16M4 17h16"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            )}
+        <div className="flex items-center xl:hidden">
+          <button type="button" className="grid size-11 place-items-center" onClick={() => setIsMenuOpen((open) => !open)} aria-label={isMenuOpen ? (vi ? 'Đóng menu' : 'Close menu') : (vi ? 'Mở menu' : 'Open menu')} aria-expanded={isMenuOpen} aria-controls="mobile-nav">
+            {isMenuOpen ? <X size={25} aria-hidden="true" /> : <Menu size={25} aria-hidden="true" />}
+          </button>
+        </div>
+        <Link href="/" className="brand-mark justify-self-center text-center" onClick={() => setIsMenuOpen(false)}>
+          <span className="block font-heading text-[1.65rem] leading-none tracking-[-0.055em] sm:text-[2rem]">HƯƠNG VIỆT</span>
+          <span className="mt-1 block text-[8px] font-semibold uppercase tracking-[0.28em] text-[var(--brand-accent)] sm:text-[9px]">Wedding & Events</span>
+        </Link>
+        <div className="flex items-center justify-end gap-4 xl:gap-6">
+          <nav aria-label={vi ? 'Điều hướng chính bên phải' : 'Primary navigation right'} className="hidden items-center gap-6 xl:flex 2xl:gap-9">
+            {right.map((item) => <Link key={item.href} href={item.href} className="nav-link">{item.label}</Link>)}
+          </nav>
+          <div className="hidden sm:block"><LanguageToggle /></div>
+          <button type="button" onClick={openBooking} className="booking-cta hidden min-h-11 whitespace-nowrap bg-[var(--brand-ink)] px-5 text-xs font-semibold uppercase tracking-[0.05em] text-white transition-colors hover:bg-[#4b3d30] sm:inline-flex sm:items-center sm:justify-center">
+            {vi ? 'Nhận tư vấn' : 'Enquire now'}
           </button>
         </div>
       </div>
       {isMenuOpen && (
-        <nav
-          id="mobile-nav"
-          aria-label={locale === 'vi' ? 'Điều hướng chính' : 'Main navigation'}
-          className="flex flex-col gap-1 border-t border-gold/30 px-4 py-3 md:hidden"
-        >
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setIsMenuOpen(false)}
-              className="rounded px-2 py-2 text-sm font-medium text-charcoal hover:bg-gold/10 hover:text-burgundy"
-            >
-              {dict.nav[item.key]}
-            </Link>
-          ))}
+        <nav id="mobile-nav" aria-label={vi ? 'Menu di động' : 'Mobile navigation'} className="max-h-[calc(100dvh-76px)] overflow-y-auto border-t border-[#d8d1c4] bg-[var(--brand-cream)] px-6 pb-7 pt-3 xl:hidden">
+          {[...left, ...right].map((item) => <Link key={item.href} href={item.href} onClick={() => setIsMenuOpen(false)} className="block border-b border-[#ddd3c4] py-3.5 font-heading text-xl">{item.label}</Link>)}
+          <div className="mt-5 flex items-center justify-between gap-4">
+            <LanguageToggle />
+            <button type="button" onClick={() => { setIsMenuOpen(false); openBooking(); }} className="min-h-11 bg-[var(--brand-ink)] px-5 text-sm font-semibold text-white">{vi ? 'Nhận tư vấn' : 'Enquire now'}</button>
+          </div>
         </nav>
       )}
     </header>

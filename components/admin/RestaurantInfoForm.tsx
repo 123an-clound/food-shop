@@ -27,7 +27,7 @@ const TEXT_FIELDS: Array<{ name: keyof RestaurantInfoFormValues; label: string; 
   { name: 'address', label: 'Địa chỉ' },
   { name: 'phone', label: 'Điện thoại' },
   { name: 'email', label: 'Email' },
-  { name: 'opening_hours', label: 'Giờ mở cửa' },
+  { name: 'opening_hours', label: 'Giờ liên hệ / phục vụ' },
   { name: 'map_embed_url', label: 'URL nhúng Google Maps' },
   { name: 'facebook_url', label: 'Facebook' },
   { name: 'instagram_url', label: 'Instagram' },
@@ -91,7 +91,7 @@ export function RestaurantInfoForm({ info }: { info: RestaurantInfo }) {
       }
     }
 
-    toast.success('Đã cập nhật thông tin nhà hàng.');
+    toast.success('Đã cập nhật thông tin thương hiệu.');
     router.refresh();
   }
 
@@ -137,7 +137,7 @@ export function RestaurantInfoForm({ info }: { info: RestaurantInfo }) {
               <FormControl>
                 <ImageUploader
                   bucket="site-media"
-                  label="Ảnh hero trang chủ"
+                  label="Ảnh hero trang chủ (tiệc cưới / sự kiện)"
                   existingUrl={field.value || undefined}
                   onUploaded={field.onChange}
                 />

@@ -13,4 +13,9 @@ describe('MapEmbed', () => {
     const { container } = render(<MapEmbed mapEmbedUrl="" title="Hương Việt" />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it('rejects a non-HTTPS iframe URL', () => {
+    const { container } = render(<MapEmbed mapEmbedUrl="javascript:alert(1)" title="Map" />);
+    expect(container).toBeEmptyDOMElement();
+  });
 });

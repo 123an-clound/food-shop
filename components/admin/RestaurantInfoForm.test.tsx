@@ -132,7 +132,7 @@ describe('RestaurantInfoForm', () => {
     };
     render(<RestaurantInfoForm info={infoWithImages} />);
     fireEvent.click(screen.getByRole('button', { name: 'Đổi ảnh: Logo' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Đổi ảnh: Ảnh hero trang chủ' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Đổi ảnh: Ảnh hero trang chủ (tiệc cưới / sự kiện)' }));
     fireEvent.click(screen.getByRole('button', { name: 'Lưu' }));
     await waitFor(() => {
       expect(updateRestaurantInfoMock).toHaveBeenCalledWith(expect.any(FormData));

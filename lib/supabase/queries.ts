@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Category, GalleryImage, MenuItem, RestaurantInfo } from '@/lib/types';
+import type { EventPackage, Testimonial } from '@/lib/events/content';
 
 export async function getCategories(supabase: SupabaseClient): Promise<Category[]> {
   const { data, error } = await supabase
@@ -55,4 +56,20 @@ export async function getGalleryImages(
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as GalleryImage[];
+}
+
+export async function getEventPackages(supabase: SupabaseClient, admin = false): Promise<EventPackage[]> {
+  let query = supabase.from('event_packages').select('*').order('display_order', { ascending: true });
+  if (!admin) query = query.eq('is_active', true);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as EventPackage[];
+}
+
+export async function getTestimonials(supabase: SupabaseClient, admin = false): Promise<Testimonial[]> {
+  let query = supabase.from('testimonials').select('*').order('display_order', { ascending: true }).order('created_at', { ascending: false });
+  if (!admin) query = query.eq('is_published', true).limit(8);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as Testimonial[];
 }

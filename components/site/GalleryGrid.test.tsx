@@ -38,7 +38,7 @@ describe('GalleryGrid', () => {
     render(<GalleryGrid images={images} locale="vi" />);
     fireEvent.click(screen.getByAltText('Không gian chính'));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText('Close'));
+    fireEvent.click(screen.getByLabelText('Đóng ảnh'));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
@@ -57,7 +57,7 @@ describe('GalleryGrid', () => {
     const thumbnail = screen.getByAltText('Sân vườn');
     fireEvent.click(thumbnail);
     await waitFor(() => {
-      const closeButton = screen.getByLabelText('Close');
+      const closeButton = screen.getByLabelText('Đóng ảnh');
       expect(closeButton).toHaveFocus();
     });
   });
@@ -68,7 +68,7 @@ describe('GalleryGrid', () => {
     const thumbnailButton = image.closest('button') as HTMLButtonElement;
     fireEvent.click(thumbnailButton);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText('Close'));
+    fireEvent.click(screen.getByLabelText('Đóng ảnh'));
     await waitFor(() => {
       expect(thumbnailButton).toHaveFocus();
     });

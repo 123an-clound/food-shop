@@ -44,6 +44,11 @@ describe('restaurantInfoSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('rejects non-HTTPS external URLs', () => {
+    expect(restaurantInfoSchema.safeParse({ ...validInput, map_embed_url: 'javascript:alert(1)' }).success).toBe(false);
+    expect(restaurantInfoSchema.safeParse({ ...validInput, facebook_url: 'http://facebook.com/example' }).success).toBe(false);
+  });
+
   it('rejects an invalid email but accepts a blank one', () => {
     expect(restaurantInfoSchema.safeParse({ ...validInput, email: 'not-an-email' }).success).toBe(false);
     expect(restaurantInfoSchema.safeParse({ ...validInput, email: '' }).success).toBe(true);

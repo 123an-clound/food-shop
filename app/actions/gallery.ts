@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/actions/require-admin';
@@ -33,6 +33,7 @@ export async function createGalleryImage(formData: FormData): Promise<ActionResu
     return { success: false, error: error.message };
   }
 
+  updateTag('gallery-images');
   revalidatePath('/gallery');
   revalidatePath('/');
   return { success: true };
@@ -65,6 +66,7 @@ export async function updateGalleryImageCaption(
     return { success: false, error: error.message };
   }
 
+  updateTag('gallery-images');
   revalidatePath('/gallery');
   return { success: true };
 }
@@ -80,6 +82,7 @@ export async function deleteGalleryImage(id: string): Promise<ActionResult> {
     return { success: false, error: error.message };
   }
 
+  updateTag('gallery-images');
   revalidatePath('/gallery');
   revalidatePath('/');
   return { success: true };
@@ -101,6 +104,7 @@ export async function reorderGalleryImages(orderedIds: string[]): Promise<Action
     return { success: false, error: failed.error.message };
   }
 
+  updateTag('gallery-images');
   revalidatePath('/gallery');
   return { success: true };
 }

@@ -1,5 +1,7 @@
+import { isHttpsUrl } from '@/lib/security/external-url';
+
 export function MapEmbed({ mapEmbedUrl, title }: { mapEmbedUrl: string; title: string }) {
-  if (!mapEmbedUrl) {
+  if (!isHttpsUrl(mapEmbedUrl)) {
     return null;
   }
 
